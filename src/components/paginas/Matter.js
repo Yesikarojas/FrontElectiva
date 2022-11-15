@@ -1,18 +1,23 @@
-import axios from "axios";
-import React, { Component } from "react";
+import { connectAPI } from "../../conection/conectionAPI";
+import React, { Component, useState, useEffect } from "react";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
+import { faBookBookmark, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import { Card, CardBody, CardFooter, CardHeader, Modal, ModalBody, ModalFooter, ModalHeader, Button } from 'reactstrap';
+import { Link } from 'react-router-dom'
 
-// esta constante es para tener la url de la Api que se va a consumir
-// ejemplo: const url="https://localhost:44302/api/empresas/"
+import Swal from "sweetalert2";
 
-const url = "https://localhost:44302/api/empresas/"
-const numbers = [123, 2222, 3345, 4111, 555533, 1,2,3,5,7,54,3];
+
+const subjects = [{ id: 1, name: "Teoria General de Sistemas", teacher: "Marco Javier", cedits: 3 },
+{ id: 2, name: "Transmisión de datos", teacher: "Pedro Nel", cedits: 4 }];
+const act = [{ id: 1, description: "Taller 2", dateDelivery: "2022-11-03", qual: 3.9, percent: "20%", code: 1 },
+{ id: 2, description: "Quiz 2", dateDelivery: "2022-11-05", qual: '', percent: "50%", code: 2 }];
+const [subject, setSubject] = useState([]);
 
 class Matter extends Component {
     //un estado para almacenar los datos y mostrar
+
     state = {
         data: [],
         modalInsertar: false,
@@ -21,9 +26,12 @@ class Matter extends Component {
             id: '',
             name: '',
             teacher: '',
-            cedits: '',
-            tipoModal: ''
-        }
+            cedits: ''
+        },
+
+        tipoModal: '',
+        code: ''
+
     }
 
     //metodo para mostrar modal insertar
@@ -33,24 +41,41 @@ class Matter extends Component {
     //metodo para la peticion get
     peticionGet = () => {
         //esta url es la de la api que mencione arriba
-        axios.get(url).then(response => {
-            this.setState({ data: response.data })  //esto muestra en la consola lo que tenga en este caso los datos de materias
-        }).catch(error => {
-            console.log(error.message);
-        })
+
+        connectAPI.get("/subjects")
+            .then(response => {
+                setSubject(response.data)
+            }).catch(error => {
+                console.log(error.message);
+            })
     }
+    /*useEffect(() => {
+        connectAPI.get('/subjects')
+        .then(resp => {
+            setSubject(resp.data)   
+  
+        })
+    },[])*/
     //metodo de petición post
     peticionPost = async () => {
         delete this.state.form.id;
-        await axios.post(url, this.state.form).then(response => {
-            this.modalInsertar();
-            this.peticionGet();
-        }).catch(error => {
-            console.log(error.message);
-        })
+        connectAPI.post("https://8103-132-255-20-66.ngrok.io/subjects", { name: this.state.form.name, teacher: this.state.form.teacher, cedits: this.state.form.cedits })
+            .then((response) => {
+                if (response.data) {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Materia añadida con exito',
+                        icon: 'success',
+                        confirmButtonText: 'Ok'
+                    })
+                    this.modalInsertar();
+                }
+            })
     }
 
-    //metodo para recibir id de actividad a modificar
+
+
+    //metodo para recibir id de materia a modificar
     seleccionarId = (matter) => {
         this.setState({
             tipoModal: 'actualizar',
@@ -63,19 +88,9 @@ class Matter extends Component {
         })
     }
 
-    peticionPut = () => {
-        axios.put(url + this.state.form.id, this.state.form).then(response => {
-            this.modalInsertar();
-            this.peticionGet();
-        })
-    }
 
-    peticionDelete = () => {
-        axios.delete(url + this.state.form.id).then(response => {
-            this.setState({ modalEliminar: false });
-            this.peticionGet();
-        })
-    }
+
+
     //metodo para capturar los datos que ingresan
     handleChange = async e => {
         e.persist();
@@ -87,79 +102,40 @@ class Matter extends Component {
         });
         console.log(this.state.form);
     }
+    idSubject = (matter) => {
+        console.log(matter);
+        this.setState({
+            code: matter
+        })
+        console.log(this.state.code + "----");
+    }
     //ciclo de vida para el metodo Get
     componentDidMount() {
-        this.peticionGet();
     }
 
     render() {
         const { form } = this.state;
         return (
             <div className="App">
-                
+
                 <br />
                 <Button className="btn btn-success" onClick={() => { this.setState({ form: null, tipoModal: 'insertar' }); this.modalInsertar() }}>Nueva Materia</Button>
                 <br /><br />
-                {numbers.map(element => (
-                    <Card className="col-sm-3 form-inline position-relative d-inline-block my-2 border-success mb-3">
-                        <CardHeader className="border-success mb-3">
-                            Materia
+                {subject.map(element => (
+                    <Card className="col-sm-3 form-inline position-relative d-inline-block my-2 border-secondary mb-3">
+                        <CardHeader className="border-secondary mb-3 text-bg-info mb-3 text-center">
+                            {element.name}
                         </CardHeader>
-                        <CardBody className="border-success mb-3">
-                            Nombre: {element}
-
+                        <CardBody >
+                            Profesor: {element.teacher}<br></br>
+                            Creditos: {element.cedits}
                         </CardBody>
-                        <CardFooter className="border-success mb-3">
-                            <button className="btn btn-primary" onClick={() => this.modalInsertar()}><FontAwesomeIcon icon={faEdit} /></button>
-                            <button className="btn btn-danger" onClick={() => { this.setState({ modalEliminar: true }) }}><FontAwesomeIcon icon={faTrashAlt} /></button>
+                        <CardFooter className="text-center">
+                            <button className="btn btn-success" onClick={() => this.idSubject(element.id)}><Link className="nav-link" to='/activities'><FontAwesomeIcon icon={faBookBookmark} />   Actividades</Link></button> <button className="btn btn-danger" onClick={() => { this.setState({ modalEliminar: true }) }}><FontAwesomeIcon icon={faTrashAlt} />  Eliminar Materia</button>
 
                         </CardFooter>
                     </Card>
                 ))}
-                                <table className="table">
-                    <thead>
-                        <tr>
-                            <th>Id</th>
-                            <th>Nombre</th>
-                            <th>Profesor</th>
-                            <th>Creditos</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>1</td>
-                            <td>taller</td>
-                            <td>2000-12-87</td>
-                            <td>46</td>
-                            <td>
-                                <button className="btn btn-primary" onClick={() => this.modalInsertar()}><FontAwesomeIcon icon={faEdit} /></button>
-                                <button className="btn btn-danger" onClick={() => { this.setState({ modalEliminar: true }) }}><FontAwesomeIcon icon={faTrashAlt} /></button>
-                            </td>
-                        </tr>
-                        {/* aqui se llena la tabla con los datos que hay en data y estos son los que vienen de la Api */}
-                        {this.state.data.map(matter => {
-                            {/*este nombre de actividades es segun lo que haya en url es decir como se llama la tabla de actividades en la api */ }
-                            <tr>
-                                <td>{matter.id}</td>
-                                <td>{matter.name}</td>
-                                <td>{matter.teacher}</td>
-                                <td>{matter.cedits}</td>
-                                <td>
-                                    <button className="btn btn-primary" onClick={() => { this.seleccionarId(matter); this.modalInsertar() }}><FontAwesomeIcon icon={faEdit} /></button>
-                                    {"  "}
-                                    <button className="btn btn-danger" onClick={() => { this.seleccionarId(matter); this.setState({ modalEliminar: true }) }}><FontAwesomeIcon icon={faTrashAlt} /></button>
-                                </td>
-                            </tr>
-                        })
-
-                        }
-
-                    </tbody>
-
-                </table>
-
-
 
                 <Modal isOpen={this.state.modalInsertar}>
                     <ModalHeader style={{ display: 'block' }}>
