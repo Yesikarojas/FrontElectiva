@@ -1,207 +1,164 @@
-import axios from "axios";
-import React, { Component } from "react";
-import 'bootstrap/dist/css/bootstrap.min.css';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
-import { Modal, ModalBody, ModalFooter, ModalHeader, Button } from 'reactstrap';
+import React, { useEffect, useState } from 'react';
+import Button from 'react-bootstrap/Button';
+import Modal from 'react-bootstrap/Modal';
+import Form from 'react-bootstrap/Form';
+import Card from 'react-bootstrap/Card';
+import { connectAPI } from '../../connection/connectionAPI';
+import { BsDashCircle, BsPlusCircle} from "react-icons/bs";
+import Swal from "sweetalert2";
+import { BtnAddAct } from '../elements/btnAddActivity';
+import { ListGroup, ListGroupItem } from 'react-bootstrap';
+import { ModalUpdActivity } from '../elements/modalUpdActivity';
 
+const Activities = ()=>{
+    const [show, setShow] = useState(false);
+    const handleClose = () => setShow(false);
+    const handleShow = () => setShow(true);
+    const[activitiesData, setActivities] = useState([])
+    const[name, setName] = useState('')
+    const[teacher, setTeacher] = useState('')
+    const[cedits, setCedits] = useState('')
 
-// esta constante es para tener la url de la Api que se va a consumir
-// ejemplo: const url="https://localhost:44302/api/empresas/"
+    function peticionPost(){
+        connectAPI
+        .post("/activities", { name, teacher, cedits })
+                .then((response) => {
+                    if (response.data) {
+                        Swal.fire({
+                            title: 'Success!',
+                            text: 'Materia añadida con exito',
+                            icon: 'success',
+                            confirmButtonText: 'Ok'
+                        })
+                    }
+                })
 
-const url = "https://8103-132-255-20-66.ngrok.io/"
-const act = [{ id: 1, description: "Taller 2", dateDelivery: "2022-11-03", qual: 3.9, percent: "20%", code: 1 },
-{ id: 2, description: "Quiz 2", dateDelivery: "2022-11-05", qual: '', percent: "50%", code: 2 }];
-const matters = [{ id: 1, name: "Teoria General de Sistemas", teacher: "Marco Javier", cedits: 3 },
-{ id: 2, name: "Transmisión de datos", teacher: "Pedro Nel", cedits: 4 }];
+    }    
 
+    function compareFechas(fechaActividad) {
+        const aux = new Date(fechaActividad);
+        const fechaActual = new Date();
 
-
-class Activities extends Component {
-    //un estado para almacenar los datos y mostrar
-    state = {
-        data: [],
-        modalInsertar: false,
-        modalEliminar: false,
-        form: {
-            id: '',
-            description: '',
-            dateDelivery: '',
-            qual: '',
-            percent: '',
-            code: '',
-            tipoModal: ''
+        if (aux > fechaActual) {
+          return <Card.Text>Ufff!!! aún hay tiempo :v</Card.Text>;
+        }else{
+            if (aux <= fechaActual) {
+                return <Card.Text>Ha terminado el tiempo :(</Card.Text>;
+              }
         }
     }
 
-    //metodo para mostrar modal insertar
-    modalInsertar = () => {
-        this.setState({ modalInsertar: !this.state.modalInsertar });
-    }
-    //metodo para la peticion get
-    peticionGet = () => {
-        //esta url es la de la api que mencione arriba
-        axios.get(url).then(response => {
-            this.setState({ data: response.data })  //esto muestra en la consola lo que tenga en este caso los datos de actividades
-        }).catch(error => {
-            console.log(error.message);
-        })
-    }
-    //metodo de petición post
-    peticionPost = async () => {
-        delete this.state.form.id;
-        await axios.post(url, this.state.form).then(response => {
-            this.modalInsertar();
-            this.peticionGet();
-        }).catch(error => {
-            console.log(error.message);
-        })
-    }
-
-    //metodo para recibir id de actividad a modificar
-    seleccionarId = (actividad) => {
-        this.setState({
-            tipoModal: 'actualizar',
-            form: {
-                id: actividad.id,
-                description: actividad.description,
-                dateDelivery: actividad.dateDelivery,
-                qual: actividad.qual,
-                percent: actividad.percent,
-                code: actividad.code
-            }
-        })
-    }
-
-    peticionPut = () => {
-        axios.put(url + this.state.form.id, this.state.form).then(response => {
-            this.modalInsertar();
-            this.peticionGet();
-        })
-    }
-
-    peticionDelete = () => {
-        axios.delete(url + this.state.form.id).then(response => {
-            this.setState({ modalEliminar: false });
-            this.peticionGet();
-        })
-    }
-    //metodo para capturar los datos que ingresan
-    handleChange = async e => {
-        e.persist();
-        await this.setState({
-            form: {
-                ...this.state.form,
-                [e.target.name]: e.target.value
-            }
-        });
-        console.log(this.state.form);
-    }
-    //ciclo de vida para el metodo Get
-    componentDidMount() {
-        this.peticionGet();
-    }
-
-    render() {
-        const { form } = this.state;
-        const x = 2;
-        if (x==2) {
-            console.log("entro if");
+    function estadoACT(estado) {
+        const aux = estado;
+        if (aux) {
+          return <Card.Text>Entregada</Card.Text>;
+        }else{
+            return <Card.Text>Sin Entregar</Card.Text>;
         }
-        return (
-            <div className="App">
-                <br />
-                <Button className="btn btn-success" onClick={() => { this.setState({ form: null, tipoModal: 'insertar' }); this.modalInsertar() }}>Nueva Actividad</Button>
-                <br /><br />
-                <table className="table">
-                    <thead>
-                        <tr>
-                            <th>Id</th>
-                            <th>Descripción</th>
-                            <th>Entrega</th>
-                            <th>Calificación</th>
-                            <th>Porcentaje</th>
-                            <th>Código Materia</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+    }
 
-                        {/* aqui se llena la tabla con los datos que hay en data y estos son los que vienen de la Api */}
-                        
-                        if (act.code==matters.id) {
-                            act.forEach(act1 => {
-                                <tr>
-                                    <td>{act1.id}</td>
-                                    <td>{act1.description}</td>
-                                    <td>{act1.dateDelivery}</td>
-                                    <td>{act1.qual}</td>
-                                    <td>{act1.percent}</td>
-                                    <td>{matters.id}</td>
-                                    <td>
-                                        <button className="btn btn-primary" onClick={() => { this.seleccionarId(act1); this.modalInsertar() }}><FontAwesomeIcon icon={faEdit} /></button> <button className="btn btn-danger" onClick={() => { this.seleccionarId(act1); this.setState({ modalEliminar: true }) }}><FontAwesomeIcon icon={faTrashAlt} /></button>
-                                    </td>
-                                </tr>
-                            })
-                        } else {
-                            
-                        }
+    function generateCard(id, description, name, dateDelivery, qual, percent, statusAct, subId){
+        const fechaActivi = new Date(dateDelivery);
+        const fechaActual = new Date();
+        const status = statusAct;
 
+        if(!status){
+            if (fechaActivi > fechaActual) {
+                return(
+                    <>
+                  
+                    <Card
+                        bg="warning"
+                        text='white'
+                        style={{ width: '18rem' }}
+                        className="mb-2"
+                    >
+                        <Card.Header>{description} - {name}</Card.Header>
+                        <Card.Body>
+                                <ListGroup>
+                                    <ListGroup.Item>Fecha Entrega: {dateDelivery}</ListGroup.Item>
+                                    <ListGroup.Item>Calificación: {qual}</ListGroup.Item>
+                                    <ListGroup.Item>Porcentaje: {percent}</ListGroup.Item>
+                                    <ListGroup.Item>Estado Actividad: {estadoACT(statusAct)} </ListGroup.Item>
+                                    <ListGroup.Item><b>{compareFechas(dateDelivery)}</b></ListGroup.Item>
+                                </ListGroup>                              
+                        </Card.Body>
+                        <Card.Footer>
+                            <BtnAddAct btnName="Editar Actividad" dataUpdate={<ModalUpdActivity idAct={id} descAct={description} dateAct={dateDelivery} qualAct={qual} percentAct={percent} statusAct={status} subjectAct={name} subjectId={subId} />} title="Actualizar Actividad"/>
+                        </Card.Footer>
+                    </Card>
+                    </>
+                  )
+            }else{
+                if (fechaActivi <= fechaActual) {
+                    return(  
+                        <Card
+                            bg="danger"
+                            text='white'
+                            style={{ width: '18rem' }}
+                            className="mb-2"
+                        >
+                            <Card.Header>{description} - {name}</Card.Header>
+                            <Card.Body>
+                                    <ListGroup>
+                                        <ListGroup.Item>Fecha Entrega: {dateDelivery}</ListGroup.Item>
+                                        <ListGroup.Item>Calificación: {qual}</ListGroup.Item>
+                                        <ListGroup.Item>Porcentaje: {percent}</ListGroup.Item>
+                                        <ListGroup.Item>Estado Actividad: {estadoACT(statusAct)} </ListGroup.Item>
+                                        <ListGroup.Item><b>{compareFechas(dateDelivery)}</b> </ListGroup.Item>
+                                    </ListGroup>                              
+                            </Card.Body>
+                            <Card.Footer>
+            
+                            </Card.Footer>
+                        </Card>
+                      )
+                }
+            }
+        }else{
+            return(
+                <>
+              
+                <Card
+                    bg="primary"
+                    text='white'
+                    style={{ width: '18rem' }}
+                    className="mb-2"
+                >
+                    <Card.Header>{description} - {name}</Card.Header>
+                    <Card.Body>
+                            <ListGroup>
+                                <ListGroup.Item>Fecha Entrega: {dateDelivery}</ListGroup.Item>
+                                <ListGroup.Item>Calificación: {qual}</ListGroup.Item>
+                                <ListGroup.Item>Porcentaje: {percent}</ListGroup.Item>
+                                <ListGroup.Item>Estado Actividad: {estadoACT(statusAct)} </ListGroup.Item>
+                                <ListGroup.Item><b>Lo has hecho!!! :)</b></ListGroup.Item>
+                            </ListGroup>                              
+                    </Card.Body>
+                </Card>
+                </>
+              )
+        } 
+    }
 
-                    </tbody>
+    useEffect(() => {
+        connectAPI.get('/activities')
+        .then(resp => {
+            setActivities(resp.data)   
+        })
+    },[])
 
-                </table>
-
-
-
-                <Modal isOpen={this.state.modalInsertar}>
-                    <ModalHeader style={{ display: 'block' }}>
-                        <span style={{ float: 'left' }}>Actividad</span>
-                    </ModalHeader>
-                    <ModalBody>
-                        <div className="form-group">
-                            <label htmlFor="id">Id</label>
-                            <input className="form-control" type="text" name="id" id="id" readOnly onChange={this.handleChange} value={form ? form.id : this.state.data.length + 1} />
-                            <br />
-                            <label htmlFor="description">Descripción</label>
-                            <input className="form-control" type="text" name="description" id="description" required onChange={this.handleChange} value={form ? form.description : ''} />
-                            <br />
-                            <label htmlFor="dateDelibery">Fecha de entrega</label>
-                            <input className="form-control" type="date" name="dateDelibery" id="dateDelibery" required onChange={this.handleChange} value={form ? form.dateDelivery : ''} />
-                            <br />
-                            <label htmlFor="qual">Calificación</label>
-                            <input className="form-control" type="number" pattern="[0-9]" name="qual" id="qual" onChange={this.handleChange} value={form ? form.qual : ''} />
-                            <br />
-                            <label htmlFor="percent">Porcentaje</label>
-                            <input className="form-control" type="text" name="percent" id="percent" onChange={this.handleChange} value={form ? form.percent : ''} />
-                        </div>
-                    </ModalBody>
-                    <ModalFooter>
-                        {this.state.tipoModal == 'insertar' ?
-                            <Button className="btn btn-success" onClick={() => this.peticionPost()}>Guardar</Button> :
-                            <Button className="btn btn-success" onClick={() => this.peticionPut()}>Guardar</Button>}
-
-
-                        <Button className="btn btn-danger" onClick={() => this.modalInsertar()}>Cancelar</Button>
-                    </ModalFooter>
-                </Modal>
-
-                {/*modal eliminar*/}
-                <Modal isOpen={this.state.modalEliminar}>
-                    <ModalHeader>
-                        Eliminar
-                    </ModalHeader>
-                    <ModalBody>
-                        ¿Esta seguro de eliminar ?
-                    </ModalBody>
-                    <ModalFooter>
-                        <Button className="btn btn-danger" onClick={() => this.peticionDelete()}>Si</Button>
-                        <Button className="btn btn-dark" onClick={() => this.setState({ modalEliminar: false })}>No</Button>
-                    </ModalFooter>
-                </Modal>
+    return (
+            <div className='container'>
+                <br/>
+                <div className='row'>
+                    <h4>Estas son sus actividades</h4>
+                    {activitiesData.map(element => (
+                        generateCard( element.id, element.description, element.subject.name, element.dateDelivery, element.qual, element.percent, element.statusAct, element.subject.id)
+                    ))}
+                </div>
             </div>
-        );
-    }
+    )
 }
 
 export default Activities;

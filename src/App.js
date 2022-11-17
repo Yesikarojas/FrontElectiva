@@ -1,20 +1,22 @@
-import {BrowserRouter as Router, Route, Routes} from 'react-router-dom'
-import Menu from './components/navegacionn/Menu'
-import Init from  './components/paginas/Init'
-import Matter from  './components/paginas/Matter'
+import {BrowserRouter, Navigate, Route, Routes} from 'react-router-dom'
+
+import Menu from './components/navegacion/Menu';
 import Activities from  './components/paginas/Activities'
+import Matter from './components/paginas/matter';
 
 function App() {
   return (
     <div className="App">
-      <Router>
-        <Menu/>
+      <BrowserRouter>
         <Routes>
-          <Route path='/' element={<Init/>}/>
-          <Route path='/matter' element={<Matter/>}/>
-          <Route path='/activities' element={<Activities/>}/>
+            <Route path='/' element={<Menu/>}>
+              <Route index element={<Matter/>}/>
+              <Route path='matter' element={<Matter/>}/>
+              <Route path='activities' element={<Activities/>}/>
+              <Route path='*' element={<Navigate replace to='/'/>} />
+            </Route>
         </Routes>
-      </Router>
+      </BrowserRouter>
     </div>
   );
 }
